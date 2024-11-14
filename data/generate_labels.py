@@ -1,20 +1,48 @@
 from langchain_core.prompts import ChatPromptTemplate
+from langchain.chat_models import ChatOpenAI
 from pydantic import BaseModel, Field
 
 prompt_template = ChatPromptTemplate.from_template(
  """
-Score the following text from a conversation.
+Score the following text from a conversation of an intermediate English language student that has the following lexical,
+grammatical competence:
+
+-Has a good range of vocabulary for matters connected to their field and most general topics.
+-Can produce appropriate collocations of many words/signs in most contexts fairly systematically.
+-Good grammatical control; occasional slips or non-systematic errors and minor flaws in sentence structure may still occur.
+-Does not make mistakes which lead to misunderstanding.
+-Has a good command of simple language structures and some complex grammatical forms.
 
 Provide only the measures in the 'ScoringTexts' function.
 
 Text:
-{input}
+{text}
 """
 )
 
-#base model to define the scores for each dimension
+#base model to define the scores for each measure
 class ScoringTexts(BaseModel):
-  score_accuracy: int = Field(description="describes how accurate the text is, the higher number the more accurate. ",
-                              enum=[1,2, 3, 4])
-  score_complexity : int = Field(description="describes how complex the text is, the higher number the more accurate. ",
-                              enum=[1,2, 3, 4])
+  #measures of lexical complexity
+  lexical_density: int = Field(description="describes the ratio of the number of lexical words to the total number of words in a text."
+                                           "1 indicates very low. 2 low. 3 medium. 4 high. 5 very high.",
+                              enum=[1,2, 3, 4, 5])
+  lexical_sophistication : int = Field(description="describes a measure of the proportion of relatively unusual or advanced words in the learner’s text."
+                                       "1 indicates very low. 2 low. 3 medium. 4 high. 5 very high.",
+                              enum=[1,2, 3, 4, 5])
+  lexical_variation: int = Field(
+      description="describes the number of different words in the text."
+      "1 indicates very low. 2 low. 3 medium. 4 high. 5 very high.",
+      enum=[1, 2, 3, 4, 5])
+
+  #measures of morphosyntactic accuracy
+  morphosyntactic_accuracy: int = Field(
+      description="describes errors in meaning and vocabulary and sentence structure, the higher number the more accurate."
+      "1 indicates very low. 2 low. 3 medium. 4 high. 5 very high.",
+      enum=[1, 2, 3, 4, 5])
+
+#Scoring function returns dict of measures
+def get_scores(txt, model):
+    llm = ChatOpenAI(temperature=0, model=model).with_structured_output(ScoringTexts)
+    chain = prompt_template | llm
+    scores = chain.invoke({"text": txt})
+    return scores.dict()
