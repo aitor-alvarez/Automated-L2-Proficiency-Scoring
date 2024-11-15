@@ -4,8 +4,8 @@ from pydantic import BaseModel, Field
 
 prompt_template = ChatPromptTemplate.from_template(
  """
-Score the following text from a conversation of an intermediate English language student that has the following lexical,
-grammatical competence:
+Score the following text from a conversation of an intermediate English language (B1-B2 on CEFR) student that is supposed to have 
+the following lexical and grammatical competence:
 
 -Has a good range of vocabulary for matters connected to their field and most general topics.
 -Can produce appropriate collocations of many words/signs in most contexts fairly systematically.
@@ -23,20 +23,20 @@ Text:
 #base model to define the scores for each measure
 class ScoringTexts(BaseModel):
   #measures of lexical complexity
-  lexical_density: int = Field(description="describes the ratio of the number of lexical words to the total number of words in a text."
+  lexical_density: int = Field(description="lexical density describes the ratio of the number of lexical words to the total number of words in a text."
                                            "1 indicates very low. 2 low. 3 medium. 4 high. 5 very high.",
                               enum=[1,2, 3, 4, 5])
-  lexical_sophistication : int = Field(description="describes a measure of the proportion of relatively unusual or advanced words in the learner’s text."
+  lexical_sophistication : int = Field(description="lexical sophistication describes a measure of the proportion of relatively unusual or advanced words in the learner’s text."
                                        "1 indicates very low. 2 low. 3 medium. 4 high. 5 very high.",
                               enum=[1,2, 3, 4, 5])
   lexical_variation: int = Field(
-      description="describes the number of different words in the text."
+      description="lexical variation describes the number of different words in the text."
       "1 indicates very low. 2 low. 3 medium. 4 high. 5 very high.",
       enum=[1, 2, 3, 4, 5])
 
   #measures of morphosyntactic accuracy
   morphosyntactic_accuracy: int = Field(
-      description="describes errors in meaning and vocabulary and sentence structure, the higher number the more accurate."
+      description="morphosyntactic accuracy describes errors in meaning and vocabulary and sentence structure."
       "1 indicates very low. 2 low. 3 medium. 4 high. 5 very high.",
       enum=[1, 2, 3, 4, 5])
 
