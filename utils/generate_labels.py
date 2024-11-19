@@ -8,14 +8,7 @@ prompt_template = ChatPromptTemplate.from_template(
  """
 Score the following text from a conversation of an intermediate English language (B1-B2 on CEFR) student.
 
-The text below has (choose o
--Has a good range of vocabulary for matters connected to their field and most general topics.
--Can produce appropriate collocations of many words/signs in most contexts fairly systematically.
--Good grammatical control; occasional slips or non-systematic errors and minor flaws in sentence structure may still occur.
--Does not make mistakes which lead to misunderstanding.
--Has a good command of simple language structures and some complex grammatical forms.
-
-Provide only the integer of the option in the 'ScoringTexts' function.
+Provide only the integer associated with the option in the 'ScoringTexts' function.
 
 Text:
 {text}
