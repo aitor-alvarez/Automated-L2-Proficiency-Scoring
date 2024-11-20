@@ -10,7 +10,7 @@ def create_dataset(file_path):
     date=[]
 
     #scores
-    lexical_complexity=[]
+    linguistic_range=[]
     grammatical_accuracy=[]
 
     #features
@@ -35,7 +35,7 @@ def create_dataset(file_path):
         lexical_variation.append()
         mean_sentence_length.append()
         #scores
-        lexical_complexity.append(scores['lexical_complexity'])
+        linguistic_range.append(scores['linguistic_range'])
         grammatical_accuracy.append(scores['grammatical_accuracy'])
 
     #create dataframe
@@ -43,12 +43,12 @@ def create_dataset(file_path):
     'proficiency_level':proficiency_level,
     'session_id' : session_id,
     'user_id': user_id,
-    'lexical_complexity' : lexical_complexity,
-    'grammatical_accuracy' : grammatical_accuracy,
     'lexical_density' : lexical_density,
     'lexical_sophistication' :lexical_sophistication,
     'lexical_variation' : lexical_variation,
-    'mean_sentence_length' : mean_sentence_length
+    'mean_sentence_length' : mean_sentence_length,
+    'linguistic_range': linguistic_range,
+    'grammatical_accuracy': grammatical_accuracy
 
     })
 
