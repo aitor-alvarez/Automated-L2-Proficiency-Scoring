@@ -8,7 +8,7 @@ from taaled import ld
 nlp = spacy.load("en_core_web_sm")
 nlp.add_pipe("textdescriptives/all")
 
-def create_dataset(file_path):
+def create_dataset(file_path, train=True):
     #dataset fields
     proficiency_level=[]
     session_id=[]
@@ -36,7 +36,15 @@ def create_dataset(file_path):
     for d in df.iterrows():
         txt = '. '.join(d['user_response']).replace("\r\n","")
         doc = nlp(txt)
-        scores = get_scores(txt)
+        if train:
+            scores = get_scores(txt)
+            # scores
+            linguistic_range.append(scores['linguistic_range'])
+            grammatical_accuracy.append(scores['grammatical_accuracy'])
+        else:
+            # scores
+            linguistic_range.append(None)
+            grammatical_accuracy.append(None)
         session_id.append(d['session_id'])
         user_id.append(d['participant'])
         proficiency_level.append(d['proficiency_level'])
@@ -57,10 +65,6 @@ def create_dataset(file_path):
         dif_words.append(textstat.difficult_words(txt))
         dependency_distance_mean.append(doc._.dependency_distance['dependency_distance_mean'])
         dependency_distance_std.append(doc._.dependency_distance['dependency_distance_std'])
-
-        #scores
-        linguistic_range.append(scores['linguistic_range'])
-        grammatical_accuracy.append(scores['grammatical_accuracy'])
 
     #create dataframe
     df = pd.DataFrame({
