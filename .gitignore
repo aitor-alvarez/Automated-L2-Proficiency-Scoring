@@ -4,3 +4,4 @@ data/
 *.pyc
 *.json
 .DS_Store
+*.env

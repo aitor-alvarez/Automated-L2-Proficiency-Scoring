@@ -1,6 +1,13 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.chat_models import ChatOpenAI
 from pydantic import BaseModel, Field
+from dotenv import load_dotenv,find_dotenv
+import os
+
+load_dotenv(find_dotenv())
+
+#API key
+api = os.environ.get("OPEN_AI_KEY")
 
 #General template
 prompt_template = ChatPromptTemplate.from_template(
@@ -55,7 +62,10 @@ class ScoringTexts(BaseModel):
 
 #Scoring function returns dict of measures
 def get_scores(txt, model):
-    llm = ChatOpenAI(temperature=0, model=model).with_structured_output(ScoringTexts)
+    llm = ChatOpenAI(temperature=0, model=model, max_tokens=None,
+    timeout=None,
+    max_retries=2,
+    api_key=api).with_structured_output(ScoringTexts)
     chain = prompt_template | llm
     scores = chain.invoke({"text": txt})
     return scores.dict()
