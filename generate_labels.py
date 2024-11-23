@@ -1,19 +1,21 @@
 from langchain_core.prompts import ChatPromptTemplate
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
-from dotenv import load_dotenv,find_dotenv
+from dotenv import load_dotenv
+from langchain.output_parsers import PydanticOutputParser
 import os
 
-load_dotenv(find_dotenv())
+
+load_dotenv('keys.env')
 
 #API key
-api = os.environ.get("OPEN_AI_KEY")
+api = os.environ.get("OPENAI_API_KEY")
 
 #General template
 prompt_template = ChatPromptTemplate.from_template(
 
 """
-Score the following text from a conversation of an intermediate English language (B1-B2 on CEFR) student.
+Score the following text from a conversation of an intermediate English language student (B1-B2 on CEFR).
 
 Provide only the integer associated with the option in the 'ScoringTexts' function.
 
@@ -41,8 +43,7 @@ class ScoringTexts(BaseModel):
                                               "specialist terminology outside it."
                                             "option 4. Can express themselves clearly without much sign of having to restrict what they want to say."
                                             "Can understand and use the main technical terminology of their field, when discussing their area of "
-                                              "specialisation with other specialists.",
-                              enum=[1,2, 3, 4])
+                                              "specialisation with other specialists.")
 
 
   #measures of grammatical accuracy as per CEFR
@@ -56,16 +57,14 @@ class ScoringTexts(BaseModel):
                                                 "although they tend to use complex structures rigidly with some inaccuracy."
                                               "option 4. Good grammatical control; occasional “slips” or non-systematic errors and minor flaws "
                                                 "in sentence structure may still occur, "
-                                                "but they are rare and can often be corrected in retrospect.",
-                                          enum=[1, 2, 3, 4])
+                                                "but they are rare and can often be corrected in retrospect.")
 
 
 #Scoring function returns dict of measures
-def get_scores(txt, model):
-    llm = ChatOpenAI(temperature=0, model=model, max_tokens=None,
-    timeout=None,
-    max_retries=2,
-    api_key=api).with_structured_output(ScoringTexts)
-    chain = prompt_template | llm
+def get_scores(txt, model="gpt-4o-mini"):
+    llm = ChatOpenAI(temperature=0, model=model, api_key=api)
+    llm_structured = llm.bind_tools([ScoringTexts])
+    llm_structured = llm_structured.with_structured_output(ScoringTexts)
+    chain = prompt_template | llm_structured
     scores = chain.invoke({"text": txt})
     return scores.dict()

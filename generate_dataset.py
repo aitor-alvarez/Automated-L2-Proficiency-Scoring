@@ -4,11 +4,13 @@ import pandas as pd
 from generate_labels import get_scores
 import spacy
 from taaled import ld
+from argparse import ArgumentParser
+import textdescriptives
 
 nlp = spacy.load("en_core_web_sm")
 nlp.add_pipe("textdescriptives/all")
 
-def create_dataset(file_path, train=True):
+def create_dataset(file_path, model, train=True):
     #dataset fields
     proficiency_level=[]
     session_id=[]
@@ -34,10 +36,10 @@ def create_dataset(file_path, train=True):
     f = json.load(open(file_path))
     df = pd.DataFrame.from_dict(f).sort_values(['participant', 'session_id'], ascending=[True, True])
     for d in df.iterrows():
-        txt = '. '.join(d['user_response']).replace("\r\n","")
+        txt = '. '.join(d[1]['user_response'][0]).replace("\r\n","")
         doc = nlp(txt)
         if train:
-            scores = get_scores(txt)
+            scores = get_scores(txt, model)
             # scores
             linguistic_range.append(scores['linguistic_range'])
             grammatical_accuracy.append(scores['grammatical_accuracy'])
@@ -45,14 +47,14 @@ def create_dataset(file_path, train=True):
             # scores
             linguistic_range.append(None)
             grammatical_accuracy.append(None)
-        session_id.append(d['session_id'])
-        user_id.append(d['participant'])
-        proficiency_level.append(d['proficiency_level'])
-        date.append(d['session_start'][:10])
+        session_id.append(d[1]['session_id'])
+        user_id.append(d[1]['participant'])
+        proficiency_level.append(d[1]['proficiency_level'])
+        date.append(d[1]['session_start'][:10])
         num_chunks = len(set([chunk for chunk in doc.noun_chunks]))
         words=[word.text for word in doc]
-        content_words = [word.text for word in doc if word.pos_.startswith('VERB') or word.startswith('PROPN') or
-                         word.startswith('NOUN') or word.startswith('ADJ') or word.startswith('ADV')]
+        content_words = [word.text for word in doc if word.pos_.startswith('VERB') or word.pos_.startswith('PROPN') or
+                         word.pos_.startswith('NOUN') or word.pos_.startswith('ADJ') or word.pos_.startswith('ADV')]
         tokens = [word.text+'_'+word.pos_ for word in doc]
 
         #features
@@ -87,3 +89,10 @@ def create_dataset(file_path, train=True):
     df.to_excel('dataset.xlsx')
     print("dataset generation completed")
     return None
+
+if __name__=='__main__':
+    parser = ArgumentParser()
+    parser.add_argument('--model_name', type=str)
+    parser.add_argument('--file_path', type=str)
+    args = parser.parse_args()
+    create_dataset(args.file_path, args.model_name)
