@@ -5,7 +5,6 @@ from generate_labels import get_scores
 import spacy
 from taaled import ld
 from argparse import ArgumentParser
-import textdescriptives
 
 nlp = spacy.load("en_core_web_sm")
 nlp.add_pipe("textdescriptives/all")

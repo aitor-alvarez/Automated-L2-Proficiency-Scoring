@@ -2,7 +2,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
-from langchain.output_parsers import PydanticOutputParser
 import os
 
 
