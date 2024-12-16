@@ -30,6 +30,7 @@ def create_dataset(file_path, model, train=True):
     # scores
     linguistic_range = []
     grammatical_accuracy = []
+    AI_generated=[]
 
     #json file is ordered by session id by default
     f = json.load(open(file_path))
@@ -42,10 +43,13 @@ def create_dataset(file_path, model, train=True):
             # scores
             linguistic_range.append(scores['linguistic_range'])
             grammatical_accuracy.append(scores['grammatical_accuracy'])
+            AI_generated.append(scores['AI_generated'])
+
         else:
             # scores
             linguistic_range.append(None)
             grammatical_accuracy.append(None)
+            AI_generated.append(None)
         session_id.append(d[1]['session_id'])
         user_id.append(d[1]['participant'])
         proficiency_level.append(d[1]['proficiency_level'])
@@ -82,7 +86,8 @@ def create_dataset(file_path, model, train=True):
     'dependency_distance_mean': dependency_distance_mean,
     'dependency_distance_std':dependency_distance_std,
     'linguistic_range': linguistic_range,
-    'grammatical_accuracy': grammatical_accuracy
+    'grammatical_accuracy': grammatical_accuracy,
+    'AI_generated': AI_generated
     })
 
     df.to_excel('dataset.xlsx')
