@@ -34,7 +34,9 @@ def create_dataset(file_path, model, train=True):
 
     #json file is ordered by session id by default
     f = json.load(open(file_path))
-    df = pd.DataFrame.from_dict(f).sort_values(['participant', 'session_id'], ascending=[True, True])
+    df = pd.DataFrame.from_dict(f)
+    df = df[df['is_spoken']==False]
+    df = df.sort_values(['participant', 'session_id'], ascending=[True, True])
     for d in df.iterrows():
         txt = '. '.join(d[1]['user_response'][0]).replace("\r\n","")
         doc = nlp(txt)
