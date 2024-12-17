@@ -1,5 +1,7 @@
 import json
 import textstat
+#This import is needed to load the pipeline in Spacy
+import textdescriptives
 import pandas as pd
 from generate_labels import get_scores
 import spacy
@@ -38,7 +40,7 @@ def create_dataset(file_path, model, train=True):
     df = df[df['is_spoken']==False]
     df = df.sort_values(['participant', 'session_id'], ascending=[True, True])
     for d in df.iterrows():
-        txt = '. '.join(d[1]['user_response'][0]).replace("\r\n","")
+        txt = ''.join(d[1]['user_response']).replace("\r\n","")
         doc = nlp(txt)
         if train:
             scores = get_scores(txt, model)
