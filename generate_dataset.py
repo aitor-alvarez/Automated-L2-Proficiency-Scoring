@@ -33,6 +33,7 @@ def create_dataset(file_path, model, train=True):
     linguistic_range = []
     grammatical_accuracy = []
     AI_generated=[]
+    n_turns = []
 
     #json file is ordered by session id by default
     f = json.load(open(file_path))
@@ -40,7 +41,8 @@ def create_dataset(file_path, model, train=True):
     df = df[df['is_spoken']==False]
     df = df.sort_values(['participant', 'session_id'], ascending=[True, True])
     for d in df.iterrows():
-        txt = ''.join(d[1]['user_response']).replace("\r\n","")
+        n_turns.append(len(d[1]))
+        txt = '.'.join(d[1]['user_response']).replace("\r\n","")
         doc = nlp(txt)
         if train:
             scores = get_scores(txt, model)
