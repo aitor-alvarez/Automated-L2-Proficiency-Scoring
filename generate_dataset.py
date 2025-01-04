@@ -92,8 +92,7 @@ def create_dataset(file_path, model, train=True):
     'dependency_distance_mean': dependency_distance_mean,
     'dependency_distance_std':dependency_distance_std,
     'linguistic_range': linguistic_range,
-    'grammatical_accuracy': grammatical_accuracy,
-    'AI_generated': AI_generated
+    'grammatical_accuracy': grammatical_accuracy
     })
 
     df.to_excel('dataset.xlsx')
