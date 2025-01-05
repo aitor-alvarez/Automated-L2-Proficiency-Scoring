@@ -81,9 +81,26 @@ def feature_selection(method, X, y, score):
             feature_importance = pd.Series(feat_importance, index=X.columns)
             print(feature_importance.sort_values(ascending=False))
 
+    #Model independent features
     elif method == 'kbest':
         kbest = SelectKBest(score_func=score, k=len(X.columns)-3)
         k1 = kbest.fit_transform(X, y['linguistic_range'])
-        print("Selected features:", X.columns[kbest.get_support()])
-        k1 = kbest.fit_transform(X, y['grammatical_accuracy'])
-        print("Selected features:", X.columns[kbest.get_support()])
+        print("Selected features for model k1:", X.columns[kbest.get_support()])
+        k2 = kbest.fit_transform(X, y['grammatical_accuracy'])
+        print("Selected features for model k2:", X.columns[kbest.get_support()])
+    elif method == 'corr':
+        X['obj1'] = y['linguistic_range']
+        X['obj2'] = y['grammatical_accuracy']
+        corr = X.corr()
+        corr_obj1 = corr['obj1']
+        corr_obj2 = corr['obj2']
+        corr_obj1=corr_obj1.drop('obj1', axis=0)
+        corr_obj1=corr_obj1.drop('obj2', axis=0)
+        corr_obj2 = corr_obj2.drop('obj1', axis=0)
+        corr_obj2 = corr_obj2.drop('obj2', axis=0)
+        k = len(X.columns) - 3
+        topk1 = corr_obj1.abs().sort_values(ascending=False)[:k].index
+        topk2 = corr_obj2.abs().sort_values(ascending=False)[:k].index
+
+    else:
+        print("select one of the following methods: rf, kbest, and corr")
