@@ -1,4 +1,5 @@
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.feature_selection import RFE, SelectKBest, chi2, mutual_info_classif
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import roc_auc_score, f1_score
 from sklearn.multioutput import MultiOutputClassifier
@@ -12,12 +13,13 @@ def dataset_preparation(data_file):
     data['user_id'], _ = pd.factorize(data['user_id'])
     y = data[['linguistic_range', 'grammatical_accuracy']]
     data.drop(['linguistic_range', 'grammatical_accuracy'], axis=1, inplace=True)
-    data = data.to_numpy()
-    x_train, x_test, y_train, y_test = train_test_split(data,  y, test_size=.2)
-    return [x_train, x_test, y_train, y_test]
+    #We keep the original data for feature selection (column names)
+    data2 = data.to_numpy()
+    x_train, x_test, y_train, y_test = train_test_split(data2,  y, test_size=.2)
+    return x_train, x_test, y_train, y_test
 
-def train_test_clf(data, model_name):
-    x_train, x_test, y_train, y_test = data
+def train_test_clf(data_file, model_name):
+    x_train, x_test, y_train, y_test = dataset_preparation(data_file)
     #Parameter search for each model
     model_optim = find_parameters(model_name, x_train, y_train)
     clf = MultiOutputClassifier(model_optim).fit(x_train, y_train)
@@ -68,3 +70,20 @@ def find_parameters(model_name, X, y):
                                           max_leaf_nodes=best_params['max_leaf_nodes'])
 
     return model_optim
+
+#Function to determine feature importance
+def feature_selection(method, X, y, score):
+    if method == 'rf':
+        model1 = RandomForestClassifier().fit(X, y['linguistic_range'])
+        model2 = RandomForestClassifier().fit(X, y['grammatical_accuracy'])
+        for model in [model1, model2]:
+            feat_importance = model.feature_importances_
+            feature_importance = pd.Series(feat_importance, index=X.columns)
+            print(feature_importance.sort_values(ascending=False))
+
+    elif method == 'kbest':
+        kbest = SelectKBest(score_func=score, k=len(X.columns)-3)
+        k1 = kbest.fit_transform(X, y['linguistic_range'])
+        print("Selected features:", X.columns[kbest.get_support()])
+        k1 = kbest.fit_transform(X, y['grammatical_accuracy'])
+        print("Selected features:", X.columns[kbest.get_support()])
