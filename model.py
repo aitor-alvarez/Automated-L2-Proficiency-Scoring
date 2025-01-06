@@ -81,7 +81,7 @@ def feature_selection(method, X, y, score):
             feature_importance = pd.Series(feat_importance, index=X.columns)
             print(feature_importance.sort_values(ascending=False))
 
-    #Model independent features
+    #Model independent feature selection
     elif method == 'kbest':
         kbest = SelectKBest(score_func=score, k=len(X.columns)-3)
         k1 = kbest.fit_transform(X, y['linguistic_range'])
