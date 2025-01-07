@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import roc_auc_score, f1_score
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.preprocessing import label_binarize
+from xgboost.sklearn import XGBClassifier
 import pandas as pd
 import numpy as np
 
@@ -68,6 +69,18 @@ def find_parameters(model_name, X, y):
                                         n_estimators=best_params['n_estimators'],
                                           max_features=best_params['max_features'],
                                           max_leaf_nodes=best_params['max_leaf_nodes'])
+
+    elif model_name =='xgb':
+        model = XGBClassifier(learning_rate =0.1, min_child_weight=1,
+                              gamma=0, subsample=0.8, colsample_bytree=0.8,
+                              objective= 'multi:softmax', nthread=4,scale_pos_weight=1, seed=27)
+        params = {"max_depth": [2, 4, 6], "n_estimators": [50, 100, 200, 500, 750]}
+        grdsearch = GridSearchCV(estimator=model, param_grid=params)
+        grdsearch.fit(X, y)
+        best_params = grdsearch.best_params_
+        model_optim = XGBClassifier(learning_rate = 0.1, max_depth = best_params['max_depth'], min_child_weight=1,
+                              gamma=0, subsample=0.8, colsample_bytree=0.8, n_estimators = best_params['n_estimators'],
+                              objective= 'multi:softmax', nthread=4,scale_pos_weight=1, seed=27)
 
     return model_optim
 

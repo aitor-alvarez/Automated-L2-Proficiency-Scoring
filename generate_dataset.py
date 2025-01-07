@@ -28,12 +28,10 @@ def create_dataset(file_path, model, train=True):
     dif_words=[]
     dependency_distance_mean=[]
     dependency_distance_std=[]
-
+    n_turns = []
     # scores
     linguistic_range = []
     grammatical_accuracy = []
-    AI_generated=[]
-    n_turns = []
 
     #json file is ordered by session id by default
     f = json.load(open(file_path))
@@ -49,7 +47,6 @@ def create_dataset(file_path, model, train=True):
             # scores
             linguistic_range.append(scores['linguistic_range'])
             grammatical_accuracy.append(scores['grammatical_accuracy'])
-            AI_generated.append(scores['AI_generated'])
 
         else:
             # scores
