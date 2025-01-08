@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    #model options are: 'rf', 'gbm', 'svm'
+    #model options are: 'rf', 'gbm', 'xgb'
     parser.add_argument('--model_name', type=str)
     parser.add_argument('--dataset_file', type=str)
     args = parser.parse_args()

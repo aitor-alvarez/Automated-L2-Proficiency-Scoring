@@ -114,6 +114,8 @@ def feature_selection(method, X, y, score):
         k = len(X.columns) - 3
         topk1 = corr_obj1.abs().sort_values(ascending=False)[:k].index
         topk2 = corr_obj2.abs().sort_values(ascending=False)[:k].index
+        print(topk1)
+        print(topk2)
 
     else:
         print("select one of the following methods: rf, kbest, and corr")

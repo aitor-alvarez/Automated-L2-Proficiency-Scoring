@@ -25,8 +25,8 @@ Text:
 
 #base model to define the scores for each measure
 class ScoringTexts(BaseModel):
-  #General linguistic range score combining CEFR linguistic range and vocabulary range.
-  linguistic_range: int = Field(description="Select the option that best describes the text."
+  #CEFR vocabulary range.
+  vocabulary_range: int = Field(description="Select the option that best describes the text."
                                            "Option 1. Has enough language to get by, with sufficient vocabulary to express themselves with some hesitation."
                                             "Lexical limitations cause repetition and even difficulty with formulation at times. "
                                             "Has sufficient vocabulary to express themselves with some circumlocutions on most topics "

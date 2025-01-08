@@ -10,6 +10,7 @@ from argparse import ArgumentParser
 
 nlp = spacy.load("en_core_web_sm")
 nlp.add_pipe("textdescriptives/all")
+lemmatizer = nlp.add_pipe("lemmatizer")
 
 def create_dataset(file_path, model, train=True):
     #dataset fields
@@ -26,8 +27,10 @@ def create_dataset(file_path, model, train=True):
     sentence_length_std=[]
     num_sentences=[]
     dif_words=[]
+    unique_words=[]
     dependency_distance_mean=[]
     dependency_distance_std=[]
+    readability=[]
     n_turns = []
     # scores
     linguistic_range = []
@@ -45,20 +48,21 @@ def create_dataset(file_path, model, train=True):
         if train:
             scores = get_scores(txt, model)
             # scores
-            linguistic_range.append(scores['linguistic_range'])
+            linguistic_range.append(scores['vocabulary_range'])
             grammatical_accuracy.append(scores['grammatical_accuracy'])
 
         else:
             # scores
             linguistic_range.append(None)
             grammatical_accuracy.append(None)
-            AI_generated.append(None)
         session_id.append(d[1]['session_id'])
         user_id.append(d[1]['participant'])
         proficiency_level.append(d[1]['proficiency_level'])
         date.append(d[1]['session_start'][:10])
         num_chunks = len(set([chunk for chunk in doc.noun_chunks]))
         words=[word.text for word in doc]
+        lemmas = [token.lemma_ for token in doc]
+        unique_words.append(len(set(lemmas))/len(words))
         content_words = [word.text for word in doc if word.pos_.startswith('VERB') or word.pos_.startswith('PROPN') or
                          word.pos_.startswith('NOUN') or word.pos_.startswith('ADJ') or word.pos_.startswith('ADV')]
         tokens = [word.text+'_'+word.pos_ for word in doc]
@@ -71,6 +75,7 @@ def create_dataset(file_path, model, train=True):
         num_sentences.append(doc._.descriptive_stats['n_sentences'])
         sentence_length_std.append(doc._.descriptive_stats['sentence_length_std'])
         dif_words.append(textstat.difficult_words(txt))
+        readability.append(textstat.flesch_reading_ease(txt, language='en_us'))
         dependency_distance_mean.append(doc._.dependency_distance['dependency_distance_mean'])
         dependency_distance_std.append(doc._.dependency_distance['dependency_distance_std'])
 
@@ -79,16 +84,19 @@ def create_dataset(file_path, model, train=True):
     'proficiency_level':proficiency_level,
     'session_id' : session_id,
     'user_id': user_id,
+    'n_turns': n_turns,
     'lexical_density' : lexical_density,
     'num_noun_chunks' : num_noun_chunks,
     'lexical_variation' : lexical_variation,
     'num_sentences' : num_sentences,
     'dif_words' : dif_words,
+    'unique_words' : unique_words,
+    'readability' : readability,
     'sentence_length_mean': sentence_length_mean,
     'sentence_length_std' : sentence_length_std,
     'dependency_distance_mean': dependency_distance_mean,
     'dependency_distance_std':dependency_distance_std,
-    'linguistic_range': linguistic_range,
+    'vocabulary_range': linguistic_range,
     'grammatical_accuracy': grammatical_accuracy
     })
 
