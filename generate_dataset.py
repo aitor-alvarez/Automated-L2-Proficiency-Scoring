@@ -31,6 +31,7 @@ def create_dataset(file_path, model, train=True):
     dependency_distance_mean=[]
     dependency_distance_std=[]
     readability=[]
+    flesch_kincaid=[]
     n_turns = []
     # scores
     linguistic_range = []
@@ -76,6 +77,7 @@ def create_dataset(file_path, model, train=True):
         sentence_length_std.append(doc._.descriptive_stats['sentence_length_std'])
         dif_words.append(textstat.difficult_words(txt))
         readability.append(textstat.flesch_reading_ease(txt, language='en_us'))
+        flesch_kincaid.append(textstat.flesch_kincaid_grade(txt, language='en_us'))
         dependency_distance_mean.append(doc._.dependency_distance['dependency_distance_mean'])
         dependency_distance_std.append(doc._.dependency_distance['dependency_distance_std'])
 
@@ -91,7 +93,8 @@ def create_dataset(file_path, model, train=True):
     'num_sentences' : num_sentences,
     'dif_words' : dif_words,
     'unique_words' : unique_words,
-    'readability' : readability,
+    'flesch_readability' : readability,
+    'flesch_kincaid' : flesch_kincaid,
     'sentence_length_mean': sentence_length_mean,
     'sentence_length_std' : sentence_length_std,
     'dependency_distance_mean': dependency_distance_mean,
