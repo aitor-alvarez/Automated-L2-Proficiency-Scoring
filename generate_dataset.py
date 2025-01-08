@@ -83,7 +83,7 @@ def create_dataset(file_path, model, train=True):
 
     #create dataframe
     df = pd.DataFrame({
-    'proficiency_level':proficiency_level,
+    'proficiency_level': proficiency_level,
     'session_id' : session_id,
     'user_id': user_id,
     'n_turns': n_turns,
@@ -98,7 +98,7 @@ def create_dataset(file_path, model, train=True):
     'sentence_length_mean': sentence_length_mean,
     'sentence_length_std' : sentence_length_std,
     'dependency_distance_mean': dependency_distance_mean,
-    'dependency_distance_std':dependency_distance_std,
+    'dependency_distance_std': dependency_distance_std,
     'vocabulary_range': linguistic_range,
     'grammatical_accuracy': grammatical_accuracy
     })

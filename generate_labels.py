@@ -27,22 +27,17 @@ Text:
 class ScoringTexts(BaseModel):
   #CEFR vocabulary range.
   vocabulary_range: int = Field(description="Select the option that best describes the text."
-                                           "Option 1. Has enough language to get by, with sufficient vocabulary to express themselves with some hesitation."
-                                            "Lexical limitations cause repetition and even difficulty with formulation at times. "
+                                           "Option 1. Has a good range of vocabulary related to familiar topics and everyday situations."
                                             "Has sufficient vocabulary to express themselves with some circumlocutions on most topics "
-                                              "pertinent to their everyday life."
-                                            "Option 2. Has a sufficient range of language to describe unpredictable situations, explain the main points "
-                                            "in an idea"
-                                            "or problem with reasonable precision and express thoughts on abstract or cultural topics. Has a good range "
-                                            "of vocabulary "
-                                            "related to familiar topics and everyday situations."
-                                            "Option 3. Has a sufficient range of language to be able to give clear descriptions, express viewpoints and develop"
-                                            "arguments without much conspicuous searching for words/signs, using some complex sentence forms to do so."
+                                              "pertinent to their everyday life such as family, hobbies and interests, work, travel and current events."
+                                            "Option 2. Has a good range of vocabulary for matters connected to their field and most general topics."
+                                            "Can vary formulation to avoid frequent repetition, but lexical gaps can still cause hesitation"
+                                            " and circumlocution."
+                                            "Can produce appropriate collocations of many words/signs in most contexts fairly systematically."
                                             "Can understand and use much of the specialist vocabulary of their field but has problems with "
-                                              "specialist terminology outside it."
-                                            "option 4. Can express themselves clearly without much sign of having to restrict what they want to say."
-                                            "Can understand and use the main technical terminology of their field, when discussing their area of "
-                                              "specialisation with other specialists.")
+                                            "specialist terminology outside it."
+                                            "Option 3. Can understand and use the main technical terminology of their field, when discussing "
+                                            "their area of specialisation with other specialists.")
 
 
   #measures of grammatical accuracy as per CEFR
