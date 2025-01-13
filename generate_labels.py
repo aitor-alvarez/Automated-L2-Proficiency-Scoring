@@ -56,7 +56,7 @@ class ScoringTexts(BaseModel):
 
 
 #Scoring function returns dict of measures
-def get_scores(txt, model="gpt-4o-mini"):
+def get_scores(txt, model="gpt-4o"):
     llm = ChatOpenAI(temperature=0, model=model, api_key=api)
     llm_structured = llm.bind_tools([ScoringTexts])
     llm_structured = llm_structured.with_structured_output(ScoringTexts)

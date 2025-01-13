@@ -1,7 +1,7 @@
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.feature_selection import RFE, SelectKBest, chi2, mutual_info_classif
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.metrics import roc_auc_score, f1_score
+from sklearn.metrics import roc_auc_score, f1_score, accuracy_score
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.preprocessing import label_binarize
 from xgboost.sklearn import XGBClassifier
@@ -13,30 +13,34 @@ def dataset_preparation(data_file):
     data = pd.read_excel(data_file)
     data = data.loc[:, ~data.columns.str.contains('^Unnamed')]
     data['user_id'], _ = pd.factorize(data['user_id'])
-    y = data[['linguistic_range', 'grammatical_accuracy']]
+    y = data[['linguistic_range', 'grammatical_accuracy']].to_numpy()
     data.drop(['linguistic_range', 'grammatical_accuracy'], axis=1, inplace=True)
     #We keep the original data for feature selection (column names)
     data2 = data.to_numpy()
     x_train, x_test, y_train, y_test = train_test_split(data2,  y, test_size=.2)
-    return x_train, x_test, y_train, y_test
+    return [x_train, x_test, y_train, y_test]
 
-def train_test_clf(data_file, model_name):
-    x_train, x_test, y_train, y_test = dataset_preparation(data_file)
-    #Parameter search for each model
-    model_optim = find_parameters(model_name, x_train, y_train)
+def train_test_clf(data_train, model_name):
+    x_train, x_test, y_train, y_test = data_train
+    #Parameter search for the selected model, since both response variables are highly correlated (>0.85) we use one
+    #for param search.
+    model_optim = find_parameters(model_name, x_train, y_train[:,0])
     clf = MultiOutputClassifier(model_optim).fit(x_train, y_train)
     preds = clf.predict(x_test)
     # iterate over the y dimension
-    f1_scores=[]
-    auc_scores=[]
-    labels = list(set(y_test))
-    ytest = label_binarize(y_test, classes=labels)
-    ypreds = label_binarize(preds, classes=labels)
-    for i in range(ytest.shape[1]):
-        f1_scores.append(f1_score(y_test[:, i], preds[:,i]))
-        auc_scores.append(roc_auc_score(y_test[:, i], preds[:,i]))
+    labels = list(set(y_train[:,0]))
+    f1_scores = []
+    auc_scores = []
+    accuracy_scores = []
+    ytest = label_binarize(list(y_test[:,0]), classes=labels)
+    for i in range(y_test.shape[1]):
+        ypreds = label_binarize(list(preds[:,i]), classes=labels)
+        f1_scores.append(f1_score(y_test[:, i], preds[:,i], average='weighted'))
+        accuracy_scores.append(accuracy_score(y_test[:, i], preds[:,i]))
+        auc_scores.append(roc_auc_score(ytest, ypreds))
 
     print(f"F1: {np.mean(f1_scores)}")
+    print(f"Accuracy: {np.mean(accuracy_scores)}")
     print(f"AUC: {np.mean(auc_scores)}")
     return None
 
@@ -56,8 +60,12 @@ def find_parameters(model_name, X, y):
                                           max_depth=best_params['max_depth'])
 
     elif model_name == 'lgb':
-        model = lgb.LGBMRegressor(num_leaves=31, learning_rate=0.05, n_estimators=20)
-        gbm.fit(X_train, y_train, eval_set=[(X_test, y_test)], eval_metric="l1", callbacks=[lgb.early_stopping(5)])
+        model = lgb.LGBMClassifier(num_leaves=35, learning_rate=0.01, n_estimators=20)
+        params = {"learning_rate": [0.01, 0.1, 0.3], "n_estimators": [20, 40, 60]}
+        grdsearch = GridSearchCV(estimator=model, param_grid=params)
+        grdsearch.fit(X, y)
+        best_params = grdsearch.best_params_
+        model_optim = lgb.LGBMClassifier(num_leaves=35, learning_rate=best_params['learning_rate'], n_estimators=best_params['n_estimators'])
 
     elif model_name =='gbm':
         model = GradientBoostingClassifier()
@@ -99,6 +107,14 @@ def feature_selection(method, X, y, score):
             feature_importance = pd.Series(feat_importance, index=X.columns)
             print(feature_importance.sort_values(ascending=False))
 
+    elif method == 'lgb':
+        model1 = lgb.LGBMClassifier(num_leaves=35, learning_rate=0.01, n_estimators=20).fit(X, y['linguistic_range'])
+        model2 = lgb.LGBMClassifier(num_leaves=35, learning_rate=0.01, n_estimators=20).fit(X, y['grammatical_accuracy'])
+        for model in [model1, model2]:
+            feat_importance = model.feature_importances_
+            feature_importance = pd.Series(feat_importance, index=X.columns)
+            print(feature_importance.sort_values(ascending=False))
+
     #Model independent feature selection
     elif method == 'kbest':
         kbest = SelectKBest(score_func=score, k=len(X.columns)-3)
@@ -106,6 +122,7 @@ def feature_selection(method, X, y, score):
         print("Selected features for model k1:", X.columns[kbest.get_support()])
         k2 = kbest.fit_transform(X, y['grammatical_accuracy'])
         print("Selected features for model k2:", X.columns[kbest.get_support()])
+
     elif method == 'corr':
         X['obj1'] = y['linguistic_range']
         X['obj2'] = y['grammatical_accuracy']
