@@ -5,6 +5,7 @@ from sklearn.metrics import roc_auc_score, f1_score
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.preprocessing import label_binarize
 from xgboost.sklearn import XGBClassifier
+import lightgbm as lgb
 import pandas as pd
 import numpy as np
 
@@ -53,6 +54,10 @@ def find_parameters(model_name, X, y):
         model_optim = RandomForestClassifier(n_estimators=best_params['n_estimators'],
                                           max_features=best_params['max_features'],
                                           max_depth=best_params['max_depth'])
+
+    elif model_name == 'lgb':
+        model = lgb.LGBMRegressor(num_leaves=31, learning_rate=0.05, n_estimators=20)
+        gbm.fit(X_train, y_train, eval_set=[(X_test, y_test)], eval_metric="l1", callbacks=[lgb.early_stopping(5)])
 
     elif model_name =='gbm':
         model = GradientBoostingClassifier()
@@ -104,7 +109,7 @@ def feature_selection(method, X, y, score):
     elif method == 'corr':
         X['obj1'] = y['linguistic_range']
         X['obj2'] = y['grammatical_accuracy']
-        corr = X.corr()
+        corr = X.corr(method='spearman')
         corr_obj1 = corr['obj1']
         corr_obj2 = corr['obj2']
         corr_obj1=corr_obj1.drop('obj1', axis=0)
