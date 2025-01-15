@@ -7,12 +7,15 @@ from generate_labels import get_scores
 import spacy
 from taaled import ld
 from argparse import ArgumentParser
+import warnings
+
+warnings.filterwarnings("ignore")
 
 nlp = spacy.load("en_core_web_sm")
 nlp.add_pipe("textdescriptives/all")
-lemmatizer = nlp.add_pipe("lemmatizer")
 
-def create_dataset(file_path, model, train=True):
+
+def create_dataset(file_path, model, generation=True):
     #dataset fields
     proficiency_level=[]
     session_id=[]
@@ -46,7 +49,7 @@ def create_dataset(file_path, model, train=True):
         n_turns.append(len(d[1]))
         txt = '.'.join(d[1]['user_response']).replace("\r\n","")
         doc = nlp(txt)
-        if train:
+        if generation:
             scores = get_scores(txt, model)
             # scores
             linguistic_range.append(scores['vocabulary_range'])
@@ -76,14 +79,15 @@ def create_dataset(file_path, model, train=True):
         num_sentences.append(doc._.descriptive_stats['n_sentences'])
         sentence_length_std.append(doc._.descriptive_stats['sentence_length_std'])
         dif_words.append(textstat.difficult_words(txt))
-        readability.append(textstat.flesch_reading_ease(txt, language='en_us'))
-        flesch_kincaid.append(textstat.flesch_kincaid_grade(txt, language='en_us'))
+        readability.append(textstat.flesch_reading_ease(txt))
+        flesch_kincaid.append(textstat.flesch_kincaid_grade(txt))
         dependency_distance_mean.append(doc._.dependency_distance['dependency_distance_mean'])
         dependency_distance_std.append(doc._.dependency_distance['dependency_distance_std'])
 
     #create dataframe
     df = pd.DataFrame({
     'proficiency_level': proficiency_level,
+    'date' : date,
     'session_id' : session_id,
     'user_id': user_id,
     'n_turns': n_turns,

@@ -17,10 +17,10 @@ def dataset_preparation(data_file):
     data = data.loc[:, ~data.columns.str.contains('^Unnamed')]
     data['user_id'], _ = pd.factorize(data['user_id'])
     y = data[['linguistic_range', 'grammatical_accuracy']].to_numpy()
-    # For xgb now it is required for labels to start at index 0
+    # For xgb it is required for labels to start at index 0
     le = LabelEncoder()
     y = [le.fit_transform(y[:,0]),le.fit_transform(y[:,1])]
-    y = np.stack( y, axis=1)
+    y = np.stack(y, axis=1)
     data.drop(['linguistic_range', 'grammatical_accuracy'], axis=1, inplace=True)
     #We keep the original data for feature selection (column names)
     data2 = data.to_numpy()
@@ -29,8 +29,8 @@ def dataset_preparation(data_file):
 
 def train_test_clf(data_train, model_name):
     x_train, x_test, y_train, y_test = data_train
-    #Parameter search for the selected model, since both response variables are highly correlated (>0.85) we use one
-    #for param search.
+    #Parameter search for the selected model, since both response variables are highly correlated (>0.85)
+    #we use one for param search.
     model_optim = find_parameters(model_name, x_train, y_train[:,0])
     clf = MultiOutputClassifier(model_optim).fit(x_train, y_train)
     preds = clf.predict(x_test)
