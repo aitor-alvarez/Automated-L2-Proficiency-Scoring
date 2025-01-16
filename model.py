@@ -1,5 +1,5 @@
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.feature_selection import RFE, SelectKBest, chi2, mutual_info_classif
+from sklearn.feature_selection import RFE, SelectKBest, chi2, mutual_info_classif, mutual_info_regression
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import roc_auc_score, f1_score, accuracy_score, precision_score, recall_score
 from sklearn.multioutput import MultiOutputClassifier
@@ -22,9 +22,8 @@ def dataset_preparation(data_file):
     y = [le.fit_transform(y[:,0]),le.fit_transform(y[:,1])]
     y = np.stack(y, axis=1)
     data.drop(['date','vocabulary_range', 'grammatical_accuracy'], axis=1, inplace=True)
-    #We keep the original data for feature selection (column names)
-    data2 = data.to_numpy()
-    x_train, x_test, y_train, y_test = train_test_split(data2,  y, test_size=.2)
+    data = data.to_numpy()
+    x_train, x_test, y_train, y_test = train_test_split(data,  y, test_size=.2)
     return [x_train, x_test, y_train, y_test]
 
 def train_test_clf(data_train, model_name):
@@ -110,7 +109,7 @@ def find_parameters(model_name, X, y):
     return model_optim
 
 #Function to determine feature importance
-def feature_selection(method, X, y, score):
+def feature_selection(method, X, y, score=mutual_info_regression):
     if method == 'rf':
         model1 = RandomForestClassifier().fit(X, y['vocabulary_range'])
         model2 = RandomForestClassifier().fit(X, y['grammatical_accuracy'])
@@ -129,10 +128,10 @@ def feature_selection(method, X, y, score):
 
     #Model independent feature selection
     elif method == 'kbest':
-        kbest = SelectKBest(score_func=score, k=len(X.columns)-3)
-        k1 = kbest.fit_transform(X, y['vocabulary_range'])
+        kbest = SelectKBest(score_func=score, k=len(X.columns)-4)
+        k1 = kbest.fit(X, y['vocabulary_range'])
         print("Selected features for model k1:", X.columns[kbest.get_support()])
-        k2 = kbest.fit_transform(X, y['grammatical_accuracy'])
+        k2 = kbest.fit(X, y['grammatical_accuracy'])
         print("Selected features for model k2:", X.columns[kbest.get_support()])
 
     elif method == 'corr':
