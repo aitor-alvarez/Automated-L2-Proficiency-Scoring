@@ -133,6 +133,14 @@ def feature_selection(method, X, y, score=mutual_info_regression):
         print("Selected features for model k1:", X.columns[kbest.get_support()])
         k2 = kbest.fit(X, y['grammatical_accuracy'])
         print("Selected features for model k2:", X.columns[kbest.get_support()])
+        return None
+
+    elif method == 'mi':
+        mi = mutual_info_classif(X, y['grammatical_accuracy'])
+        mi = pd.Series(mi, name="MI Scores", index=X.columns)
+        mi = mi.sort_values(ascending=False)
+        print(mi)
+        return None
 
     elif method == 'corr':
         X['obj1'] = y['vocabulary_range']
@@ -149,6 +157,7 @@ def feature_selection(method, X, y, score=mutual_info_regression):
         topk2 = corr_obj2.abs().sort_values(ascending=False)[:k].index
         print(topk1)
         print(topk2)
+        return None
 
     else:
         print("select one of the following methods: rf, kbest, and corr")
