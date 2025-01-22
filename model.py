@@ -21,9 +21,9 @@ def dataset_preparation(data_file):
     le = LabelEncoder()
     y = [le.fit_transform(y[:,0]),le.fit_transform(y[:,1])]
     y = np.stack(y, axis=1)
-    data.drop(['date','vocabulary_range', 'grammatical_accuracy'], axis=1, inplace=True)
+    data.drop(['session_id', 'date','proficiency_level','vocabulary_range', 'grammatical_accuracy'], axis=1, inplace=True)
     data = data.to_numpy()
-    x_train, x_test, y_train, y_test = train_test_split(data,  y, test_size=.2)
+    x_train, x_test, y_train, y_test = train_test_split(data,  y, test_size=.2, random_state=13)
     return [x_train, x_test, y_train, y_test]
 
 def train_test_clf(data_train, model_name):
@@ -58,7 +58,7 @@ def train_test_clf(data_train, model_name):
 
 def find_parameters(model_name, X, y):
     if model_name =='rf':
-        model = RandomForestClassifier()
+        model = RandomForestClassifier(random_state=42)
         params = {
             'n_estimators': [100, 200, 300, 500],
             'max_features': ['sqrt', 'log2'],
@@ -73,14 +73,17 @@ def find_parameters(model_name, X, y):
 
     elif model_name == 'lgb':
         model = lgb.LGBMClassifier(num_leaves=35, learning_rate=0.01, n_estimators=20, verbose=-1)
-        params = {"learning_rate": [0.01, 0.1, 0.3], "n_estimators": [20, 40, 60]}
+        params = {"learning_rate": [0.2, 0.3, 0.4], "n_estimators": [50, 60, 100]}
         grdsearch = GridSearchCV(estimator=model, param_grid=params)
         grdsearch.fit(X, y)
         best_params = grdsearch.best_params_
-        model_optim = lgb.LGBMClassifier(num_leaves=35, learning_rate=best_params['learning_rate'], n_estimators=best_params['n_estimators'], verbose=-1)
+        print(best_params)
+        model_optim = lgb.LGBMClassifier(num_leaves=35, learning_rate=best_params['learning_rate'],
+                                         n_estimators=best_params['n_estimators'], verbose=-1)
 
     elif model_name =='gbm':
-        model = GradientBoostingClassifier(loss='log_loss', verbose=-1)
+        model = GradientBoostingClassifier(loss='log_loss', verbose=0,
+                                           random_state=42)
         params = {
                 'n_estimators': [100, 200, 300, 500],
                 'max_features': ['sqrt', 'log2'],
@@ -92,19 +95,22 @@ def find_parameters(model_name, X, y):
         model_optim = GradientBoostingClassifier(loss= 'log_loss',
                                         n_estimators=best_params['n_estimators'],
                                           max_features=best_params['max_features'],
-                                          max_leaf_nodes=best_params['max_leaf_nodes'], verbose=-1)
+                                          max_leaf_nodes=best_params['max_leaf_nodes'],
+                                                 random_state=42, verbose=0)
 
     elif model_name =='xgb':
         model = XGBClassifier(learning_rate =0.1, min_child_weight=1, num_class=4,
                               gamma=0, subsample=0.8, colsample_bytree=0.8,
-                              objective= 'multi:softmax', nthread=4, seed=27, verbose=-1)
+                              objective= 'multi:softmax', nthread=4, seed=27,
+                              random_state=42, verbose=-1)
         params = {"max_depth": [2, 4, 6], "n_estimators": [50, 100, 200, 500, 750]}
         grdsearch = GridSearchCV(estimator=model, param_grid=params)
         grdsearch.fit(X, y)
         best_params = grdsearch.best_params_
         model_optim = XGBClassifier(learning_rate = 0.1, max_depth = best_params['max_depth'], min_child_weight=1,num_class=4,
-                              gamma=0, subsample=0.8, colsample_bytree=0.8, n_estimators = best_params['n_estimators'],
-                              objective= 'multi:softmax', nthread=4,scale_pos_weight=1, seed=27, verbose=-1)
+                                    random_state=42, gamma=0, subsample=0.8, colsample_bytree=0.8,
+                                    n_estimators = best_params['n_estimators'],
+                              objective= 'multi:softmax', nthread=4,scale_pos_weight=1, seed=27, verbose=0)
 
     return model_optim
 
