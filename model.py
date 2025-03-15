@@ -5,6 +5,7 @@ from sklearn.metrics import roc_auc_score, f1_score, accuracy_score, precision_s
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.preprocessing import label_binarize, LabelEncoder
 from xgboost.sklearn import XGBClassifier
+from ppi_py import ppi_mean_ci
 import warnings
 import lightgbm as lgb
 import pandas as pd
@@ -25,6 +26,31 @@ def dataset_preparation(data_file):
     data = data.to_numpy()
     x_train, x_test, y_train, y_test = train_test_split(data,  y, test_size=.2, random_state=13)
     return [x_train, x_test, y_train, y_test]
+
+
+def semi_supervised_ppi_train(data_label, data_unlabeled, model_name, model_params, alpha=0.1):
+    x_train_label, x_test_label, y_train_label, y_test_label= data_label
+    x_unl = data_unlabeled
+    if model_name == 'rf':
+        model = RandomForestClassifier(model_params)
+
+    elif model_name == 'lgb':
+        model = lgb.LGBMClassifier(model_params)
+
+    elif model_name == 'gbm':
+        model = GradientBoostingClassifier(model_params)
+
+    elif model_name == 'xgb':
+        model = XGBClassifier(model_params)
+
+    clf = MultiOutputClassifier(model).fit(x_train_label, y_train_label)
+    y_hat = clf.predict(x_test_label)
+    y_hat_unl = clf.predict(x_unl)
+    ppi_ci = ppi_mean_ci(y_test_label, y_hat, y_hat_unl, alpha=alpha)
+    if y_hat_unl >= ppi_ci:
+        #TO DO
+
+
 
 def train_test_clf(data_train, model_name):
     x_train, x_test, y_train, y_test = data_train
@@ -166,4 +192,4 @@ def feature_selection(method, X, y, score=mutual_info_regression):
         return None
 
     else:
-        print("select one of the following methods: rf, kbest, and corr")
+        print("select one of the following methods: rf, kbest, mi, and corr")
