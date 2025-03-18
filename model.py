@@ -6,31 +6,46 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.preprocessing import label_binarize, LabelEncoder
 from xgboost.sklearn import XGBClassifier
 from ppi_py import ppi_mean_ci
-import warnings
+import warnings, random
 import lightgbm as lgb
 import pandas as pd
 import numpy as np
+import joblib
 
 warnings.filterwarnings("ignore")
 
-def dataset_preparation(data_file):
+def dataset_preparation(data_file, y_cols =['vocabulary_range', 'grammatical_accuracy']):
     data = pd.read_excel(data_file)
     data = data.loc[:, ~data.columns.str.contains('^Unnamed')]
     data['user_id'], _ = pd.factorize(data['user_id'])
-    y = data[['vocabulary_range', 'grammatical_accuracy']].to_numpy()
+    y = data[y_cols].to_numpy()
     # For xgb it is required for labels to start at index 0
     le = LabelEncoder()
     y = [le.fit_transform(y[:,0]),le.fit_transform(y[:,1])]
     y = np.stack(y, axis=1)
-    data.drop(['session_id', 'date','proficiency_level','vocabulary_range', 'grammatical_accuracy'], axis=1, inplace=True)
+    data.drop(['session_id', 'date','proficiency_level'], axis=1, inplace=True)
+    data.drop(y_cols, axis=1, inplace=True)
     data = data.to_numpy()
     x_train, x_test, y_train, y_test = train_test_split(data,  y, test_size=.2, random_state=13)
     return [x_train, x_test, y_train, y_test]
 
 
-def semi_supervised_ppi_train(data_label, data_unlabeled, model_name, model_params, alpha=0.1):
+def unlabeled_data_sampling(data, n):
+    sample = data.sample(n=n, replace=False)
+    data = data.drop(sample.index).reset_index(drop=True)
+    return sample.to_numpy(), data
+
+
+def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sample_size=50, alpha=0.1, w_t=0.2):
     x_train_label, x_test_label, y_train_label, y_test_label= data_label
-    x_unl = data_unlabeled
+    #Unlabeled data and sampling
+    data_unl = pd.read_excel(unl_file)
+    data_unl = data_unl.loc[:, ~data_unl.columns.str.contains('^Unnamed')]
+    data_unl['user_id'], _ = pd.factorize(data_unl['user_id'])
+    data_unl.drop(['session_id', 'date', 'proficiency_level'], axis=1,
+              inplace=True)
+    x_unl, data_unl  = unlabeled_data_sampling(data_unl, sample_size)
+
     if model_name == 'rf':
         model = RandomForestClassifier(model_params)
 
@@ -43,13 +58,39 @@ def semi_supervised_ppi_train(data_label, data_unlabeled, model_name, model_para
     elif model_name == 'xgb':
         model = XGBClassifier(model_params)
 
-    clf = MultiOutputClassifier(model).fit(x_train_label, y_train_label)
-    y_hat = clf.predict(x_test_label)
-    y_hat_unl = clf.predict(x_unl)
-    ppi_ci = ppi_mean_ci(y_test_label, y_hat, y_hat_unl, alpha=alpha)
-    if y_hat_unl >= ppi_ci:
-        #TO DO
-
+    clf = model.fit(x_train_label, y_train_label)
+    preds_label = clf.predict(x_test_label)
+    probs_label = clf.predict_proba(x_test_label)
+    probs_unl = clf.predict_proba(x_unl)
+    preds_unl = clf.predict(x_unl)
+    #Estimate accuracy, CI and width
+    corrects = (preds_label==y_test_label).astype(float)
+    ppi_ci = ppi_mean_ci(corrects, probs_label, probs_unl, alpha=alpha)
+    width = ppi_ci[0]-ppi_ci[1]
+    #add imputed data to train and predicted y
+    train_imputation = np.concatenate([x_train_label, x_unl])
+    y_imputation = np.concatenate([y_train_label, preds_unl])
+    #Add new unlabeled samples until condition is no longer met
+    while width <= w_t:
+        #Get new unlabeled sample
+        x_unl, data_unl = unlabeled_data_sampling(data_unl, sample_size)
+        #Continue with training with new data
+        clf = model.fit(train_imputation, y_imputation)
+        preds_label = clf.predict(x_test_label)
+        probs_label = clf.predict_proba(x_test_label)
+        probs_unl = clf.predict_proba(x_unl)
+        preds_unl = clf.predict(x_unl)
+        # Estimate accuracy, CI and width
+        corrects = (preds_label == y_test_label).astype(float)
+        ppi_ci = ppi_mean_ci(corrects, probs_label, probs_unl, alpha=alpha)
+        width = ppi_ci[0] - ppi_ci[1]
+        # add imputed data to train and predicted y
+        train_imputation = np.concatenate([train_imputation, x_unl])
+        y_imputation = np.concatenate([y_imputation, preds_unl])
+    else:
+        joblib.dump(model, 'model.joblib')
+        print("Trained model saved")
+    return None
 
 
 def train_test_clf(data_train, model_name):
@@ -59,7 +100,17 @@ def train_test_clf(data_train, model_name):
     model_optim = find_parameters(model_name, x_train, y_train[:,0])
     clf = MultiOutputClassifier(model_optim).fit(x_train, y_train)
     preds = clf.predict(x_test)
-    # iterate over the y dimension
+    precision, recall, f1_scores, accuracy_scores, auc_scores= calculate_metrics(y_test, y_train, preds)
+
+    print(f"Precision: {np.mean(precision)}")
+    print(f"Recall: {np.mean(recall)}")
+    print(f"F1: {np.mean(f1_scores)}")
+    print(f"Accuracy: {np.mean(accuracy_scores)}")
+    print(f"AUC: {np.mean(auc_scores)}")
+    return None
+
+
+def  calculate_metrics(y_test, y_train, preds):
     precision = []
     recall = []
     f1_scores = []
@@ -68,19 +119,15 @@ def train_test_clf(data_train, model_name):
     for i in range(y_test.shape[1]):
         labels = list(set(y_train[:, i]))
         ytest = label_binarize(list(y_test[:, i]), classes=labels)
-        ypreds = label_binarize(list(preds[:,i]), classes=labels)
-        precision.append(precision_score(y_test[:, i], preds[:,i], average='weighted'))
-        recall.append(recall_score(y_test[:, i], preds[:,i], average='weighted'))
-        f1_scores.append(f1_score(y_test[:, i], preds[:,i], average='weighted'))
-        accuracy_scores.append(accuracy_score(y_test[:, i], preds[:,i]))
+        ypreds = label_binarize(list(preds[:, i]), classes=labels)
+        precision.append(precision_score(y_test[:, i], preds[:, i], average='weighted'))
+        recall.append(recall_score(y_test[:, i], preds[:, i], average='weighted'))
+        f1_scores.append(f1_score(y_test[:, i], preds[:, i], average='weighted'))
+        accuracy_scores.append(accuracy_score(y_test[:, i], preds[:, i]))
         auc_scores.append(roc_auc_score(ytest, ypreds))
 
-    print(f"Precision: {np.mean(precision)}")
-    print(f"Recall: {np.mean(recall)}")
-    print(f"F1: {np.mean(f1_scores)}")
-    print(f"Accuracy: {np.mean(accuracy_scores)}")
-    print(f"AUC: {np.mean(auc_scores)}")
-    return None
+    return precision, recall, f1_scores, accuracy_scores, auc_scores
+
 
 def find_parameters(model_name, X, y):
     if model_name =='rf':
