@@ -5,7 +5,7 @@ from sklearn.metrics import roc_auc_score, f1_score, accuracy_score, precision_s
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.preprocessing import label_binarize, LabelEncoder
 from xgboost.sklearn import XGBClassifier
-from ppi_py import ppi_mean_ci
+from ppi_py import ppi_mean_ci, ppi_mean_pointestimate
 import warnings, random
 import lightgbm as lgb
 import pandas as pd
@@ -63,14 +63,15 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
     probs_label = clf.predict_proba(x_test_label)
     probs_unl = clf.predict_proba(x_unl)
     preds_unl = clf.predict(x_unl)
-    #Estimate accuracy, CI and width
+    #Estimate mean accuracy, CI and width
     corrects = (preds_label==y_test_label).astype(float)
     ppi_ci = ppi_mean_ci(corrects, probs_label, probs_unl, alpha=alpha)
     width = ppi_ci[0]-ppi_ci[1]
     #add imputed data to train and predicted y
     train_imputation = np.concatenate([x_train_label, x_unl])
     y_imputation = np.concatenate([y_train_label, preds_unl])
-    #Add new unlabeled samples until condition is no longer met
+    sample_s = sample_size
+    # Add new unlabeled samples until condition is no longer met
     while width <= w_t:
         #Get new unlabeled sample
         x_unl, data_unl = unlabeled_data_sampling(data_unl, sample_size)
@@ -83,10 +84,13 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
         # Estimate accuracy, CI and width
         corrects = (preds_label == y_test_label).astype(float)
         ppi_ci = ppi_mean_ci(corrects, probs_label, probs_unl, alpha=alpha)
+        acc = ppi_mean_pointestimate(corrects, probs_label, probs_unl)
         width = ppi_ci[0] - ppi_ci[1]
         # add imputed data to train and predicted y
         train_imputation = np.concatenate([train_imputation, x_unl])
         y_imputation = np.concatenate([y_imputation, preds_unl])
+        print(f"CI={ppi_ci}:.3f width={width:.3f} accuracy={acc:.3f} sample_size={sample_s:.3f}")
+        sample_s += sample_size
     else:
         joblib.dump(model, 'model.joblib')
         print("Trained model saved")
