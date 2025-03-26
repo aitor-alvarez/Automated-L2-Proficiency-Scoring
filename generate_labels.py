@@ -16,7 +16,7 @@ prompt_template = ChatPromptTemplate.from_template(
 """
 Score the following text from a conversation of an intermediate English language student (B1-B2 on CEFR).
 
-Provide only the integer associated with the option in the 'ScoringTexts' function.
+Provide the score as an integer and the probability as a float associated with the options in the 'ScoringTexts' function.
 
 Text:
 {text}
@@ -39,6 +39,8 @@ class ScoringTexts(BaseModel):
                                             "Option 3. Can understand and use the main technical terminology of their field, when discussing "
                                             "their area of specialisation with other specialists.")
 
+  vocabulary_range_proba: float = Field(description="Express in the form of a probability the confidence on the vocabulary range score given.")
+
 
   #measures of grammatical accuracy as per CEFR
   grammatical_accuracy: int = Field(description="Select the option that best describes the text."
@@ -52,6 +54,8 @@ class ScoringTexts(BaseModel):
                                               "option 4. Good grammatical control; occasional “slips” or non-systematic errors and minor flaws "
                                                 "in sentence structure may still occur, "
                                                 "but they are rare and can often be corrected in retrospect.")
+
+  grammatical_accuracy_proba: float = Field(description="Express in the form of a probability the confidence on the grammatical accuracy score given.")
 
 
 

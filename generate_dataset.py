@@ -37,8 +37,10 @@ def create_dataset(file_path, model, generation=True):
     flesch_kincaid=[]
     n_turns = []
     # scores
-    linguistic_range = []
+    vocabulary_range = []
+    vocabulary_range_proba = []
     grammatical_accuracy = []
+    grammatical_accuracy_proba = []
 
     #json file is ordered by session id by default
     f = json.load(open(file_path))
@@ -52,13 +54,18 @@ def create_dataset(file_path, model, generation=True):
         if generation:
             scores = get_scores(txt, model)
             # scores
-            linguistic_range.append(scores['vocabulary_range'])
+            vocabulary_range.append(scores['vocabulary_range'])
+            vocabulary_range_proba.append(scores['vocabulary_range_proba'])
             grammatical_accuracy.append(scores['grammatical_accuracy'])
+            grammatical_accuracy_proba.append(scores['grammatical_accuracy_proba'])
 
         else:
             # scores
-            linguistic_range.append(None)
+            vocabulary_range.append(None)
+            vocabulary_range_proba.append(None)
             grammatical_accuracy.append(None)
+            grammatical_accuracy_proba(None)
+
         session_id.append(d[1]['session_id'])
         user_id.append(d[1]['participant'])
         proficiency_level.append(d[1]['proficiency_level'])
@@ -103,8 +110,10 @@ def create_dataset(file_path, model, generation=True):
     'sentence_length_std' : sentence_length_std,
     'dependency_distance_mean': dependency_distance_mean,
     'dependency_distance_std': dependency_distance_std,
-    'vocabulary_range': linguistic_range,
-    'grammatical_accuracy': grammatical_accuracy
+    'vocabulary_range': vocabulary_range,
+    'vocabulary_range_proba': vocabulary_range_proba,
+    'grammatical_accuracy': grammatical_accuracy,
+    'grammatical_accuracy_proba': grammatical_accuracy_proba
     })
 
     df.to_excel('dataset.xlsx')
