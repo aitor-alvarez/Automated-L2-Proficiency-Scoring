@@ -36,8 +36,8 @@ class ScoringTexts(BaseModel):
                                             "Can produce appropriate collocations of many words/signs in most contexts fairly systematically."
                                             "Can understand and use much of the specialist vocabulary of their field but has problems with "
                                             "specialist terminology outside it."
-                                            "Option 3. Can understand and use the main technical terminology of their field, when discussing "
-                                            "their area of specialisation with other specialists.")
+                                            "Option 3. Can understand and use technical terminology when discussing "
+                                            "areas of specialization. Have access to specialized vocabulary in relation to the topic.")
 
   vocabulary_range_proba: float = Field(description="Express in the form of a probability the confidence on the vocabulary range score given.")
 
@@ -61,7 +61,7 @@ class ScoringTexts(BaseModel):
 
 #Scoring function returns dict of measures
 #Models used gpt-4o-mini gpt-4o
-def get_scores(txt, model="gpt-4o"):
+def get_scores(txt, model="gpt-4o-mini"):
     llm = ChatOpenAI(temperature=0, model=model, api_key=api)
     llm_structured = llm.bind_tools([ScoringTexts])
     llm_structured = llm_structured.with_structured_output(ScoringTexts)
