@@ -14,19 +14,19 @@ import joblib
 
 warnings.filterwarnings("ignore")
 
-def dataset_preparation(data_file, y_cols =['vocabulary_range', 'grammatical_accuracy']):
+def dataset_preparation(data_file, y_cols =['vocabulary_range']):
     data = pd.read_excel(data_file)
     data = data.loc[:, ~data.columns.str.contains('^Unnamed')]
     data['user_id'], _ = pd.factorize(data['user_id'])
     y = data[y_cols].to_numpy()
     # For xgb it is required for labels to start at index 0
     le = LabelEncoder()
-    y = [le.fit_transform(y[:,0]),le.fit_transform(y[:,1])]
-    y = np.stack(y, axis=1)
-    data.drop(['session_id', 'date','proficiency_level'], axis=1, inplace=True)
-    data.drop(y_cols, axis=1, inplace=True)
+    #y = [le.fit_transform(y[:,0]),le.fit_transform(y[:,1])]
+    y = [le.fit_transform(y[:, 0])]
+    data.drop(['session_id'], axis=1, inplace=True)
+    data.drop(['vocabulary_range', 'grammatical_accuracy'], axis=1, inplace=True)
     data = data.to_numpy()
-    x_train, x_test, y_train, y_test = train_test_split(data,  y, test_size=.2, random_state=13)
+    x_train, x_test, y_train, y_test = train_test_split(data,  y[0], test_size=.15, random_state=13)
     return [x_train, x_test, y_train, y_test]
 
 
@@ -42,12 +42,12 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
     data_unl = pd.read_excel(unl_file)
     data_unl = data_unl.loc[:, ~data_unl.columns.str.contains('^Unnamed')]
     data_unl['user_id'], _ = pd.factorize(data_unl['user_id'])
-    data_unl.drop(['session_id', 'date', 'proficiency_level'], axis=1,
+    data_unl.drop(['session_id'], axis=1,
               inplace=True)
     x_unl, data_unl  = unlabeled_data_sampling(data_unl, sample_size)
 
     if model_name == 'rf':
-        model = RandomForestClassifier(model_params)
+        model = RandomForestClassifier(**model_params)
 
     elif model_name == 'lgb':
         model = lgb.LGBMClassifier(**model_params)
@@ -56,17 +56,27 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
         model = GradientBoostingClassifier(**model_params)
 
     elif model_name == 'xgb':
-        model = XGBClassifier(model_params)
-
+        model = XGBClassifier(**model_params)
+    #Save values during training for plotting
+    ws=[]
+    accs=[]
+    coverage=[]
     clf = model.fit(x_train_label, y_train_label)
     preds_label = clf.predict(x_test_label)
     probs_label = clf.predict_proba(x_test_label)
+    probs_label = np.max(probs_label, axis=1)
     probs_unl = clf.predict_proba(x_unl)
+    probs_unl = np.max(probs_unl, axis=1)
     preds_unl = clf.predict(x_unl)
     #Estimate mean accuracy, CI and width
     corrects = (preds_label==y_test_label).astype(float)
     ppi_ci = ppi_mean_ci(corrects, probs_label, probs_unl, alpha=alpha)
-    width = ppi_ci[0]-ppi_ci[1]
+    acc = ppi_mean_pointestimate(corrects, probs_label, probs_unl)
+    accs.append(acc[0])
+    width = abs(ppi_ci[0]-ppi_ci[1])[0]
+    ws.append(width)
+    #Calculate coverage
+    coverage.append(1) if ppi_ci[0] <= accs[0] <= ppi_ci[1] else coverage.append(0)
     #add imputed data to train and predicted y
     x_imputation = np.concatenate([x_train_label, x_unl])
     y_imputation = np.concatenate([y_train_label, preds_unl])
@@ -79,18 +89,23 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
         clf = model.fit(x_imputation, y_imputation)
         preds_label = clf.predict(x_test_label)
         probs_label = clf.predict_proba(x_test_label)
+        probs_label = np.max(probs_label, axis=1)
         probs_unl = clf.predict_proba(x_unl)
+        probs_unl = np.max(probs_unl, axis=1)
         preds_unl = clf.predict(x_unl)
         # Estimate accuracy, CI and width
         corrects = (preds_label == y_test_label).astype(float)
         ppi_ci = ppi_mean_ci(corrects, probs_label, probs_unl, alpha=alpha)
         acc = ppi_mean_pointestimate(corrects, probs_label, probs_unl)
-        width = ppi_ci[0] - ppi_ci[1]
+        accs.append(acc[0])
+        width = abs(ppi_ci[0]-ppi_ci[1])[0]
+        ws.append(width[0])
+        coverage.append(1) if ppi_ci[0] <= accs[0] <= ppi_ci[1] else coverage.append(0)
         # add imputed data to train and predicted y
         x_imputation = np.concatenate([x_imputation, x_unl])
         y_imputation = np.concatenate([y_imputation, preds_unl])
-        print(f"CI={ppi_ci}:.3f width={width:.3f} mean_accuracy={acc:.3f} sample_size={sample_s:.3f}")
         sample_s += sample_size
+        print(f"CI_lower={ppi_ci[0][0]:.3} CI_upper={ppi_ci[1][0]:.3} width={width:.3f} sample_size={sample_s:.3f}")
     else:
         joblib.dump(model, model_name+'.joblib')
         print("Trained model saved")
