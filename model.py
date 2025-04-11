@@ -99,13 +99,15 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
         acc = ppi_mean_pointestimate(corrects, probs_label, probs_unl)
         accs.append(acc[0])
         width = abs(ppi_ci[0]-ppi_ci[1])[0]
-        ws.append(width[0])
+        ws.append(width)
         coverage.append(1) if ppi_ci[0] <= accs[0] <= ppi_ci[1] else coverage.append(0)
         # add imputed data to train and predicted y
         x_imputation = np.concatenate([x_imputation, x_unl])
         y_imputation = np.concatenate([y_imputation, preds_unl])
         sample_s += sample_size
         print(f"CI_lower={ppi_ci[0][0]:.3} CI_upper={ppi_ci[1][0]:.3} width={width:.3f} sample_size={sample_s:.3f}")
+        if len(data_unl)<50:
+            break
     else:
         joblib.dump(model, model_name+'.joblib')
         print("Trained model saved")
