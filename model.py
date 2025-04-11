@@ -55,7 +55,7 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
     elif model_name == 'gbm':
         model = GradientBoostingClassifier(**model_params)
 
-    elif model_name == 'xgb':
+    else:
         model = XGBClassifier(**model_params)
     #Save values during training for plotting
     ws=[]
@@ -106,7 +106,93 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
         y_imputation = np.concatenate([y_imputation, preds_unl])
         sample_s += sample_size
         print(f"CI_lower={ppi_ci[0][0]:.3} CI_upper={ppi_ci[1][0]:.3} width={width:.3f} sample_size={sample_s:.3f}")
-        if len(data_unl)<50:
+        if len(data_unl)<sample_size:
+            joblib.dump(model, model_name + '.joblib')
+            print("Trained model saved")
+            break
+    else:
+        joblib.dump(model, model_name+'.joblib')
+        print("Trained model saved")
+    return None
+
+
+def unlabeled_weakly_sampling(data, n, col_name):
+    sample = data.sample(n=n, replace=False)
+    data = data.drop(sample.index).reset_index(drop=True)
+    sample_x = sample.iloc[:, :-4]
+    sample_y = sample[col_name]
+    sample_proba = sample[col_name+'_proba']
+    return sample_x.to_numpy(), sample_y.to_numpy(), sample_proba.to_numpy(), data
+
+
+def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, col_name, sample_size=50, alpha=0.1, w_t=0.2):
+    x_train_label, x_test_label, y_train_label, y_test_label= data_label
+    #Unlabeled data and sampling
+    data_unl = pd.read_excel(unl_file)
+    data_unl = data_unl.loc[:, ~data_unl.columns.str.contains('^Unnamed')]
+    data_unl['user_id'], _ = pd.factorize(data_unl['user_id'])
+    data_unl.drop(['session_id'], axis=1,
+              inplace=True)
+    x_unl, preds_unl, probs_unl, data_unl  = unlabeled_weakly_sampling(data_unl, sample_size, col_name)
+
+    if model_name == 'rf':
+        model = RandomForestClassifier(**model_params)
+
+    elif model_name == 'lgb':
+        model = lgb.LGBMClassifier(**model_params)
+
+    elif model_name == 'gbm':
+        model = GradientBoostingClassifier(**model_params)
+
+    else:
+        model = XGBClassifier(**model_params)
+    #Save values during training for plotting
+    ws=[]
+    accs=[]
+    coverage=[]
+    clf = model.fit(x_train_label, y_train_label)
+    preds_label = clf.predict(x_test_label)
+    probs_label = clf.predict_proba(x_test_label)
+    probs_label = np.max(probs_label, axis=1)
+    #Estimate mean accuracy, CI and width
+    corrects = (preds_label==y_test_label).astype(float)
+    ppi_ci = ppi_mean_ci(corrects, probs_label, probs_unl, alpha=alpha)
+    acc = ppi_mean_pointestimate(corrects, probs_label, probs_unl)
+    accs.append(acc[0])
+    width = abs(ppi_ci[0]-ppi_ci[1])[0]
+    ws.append(width)
+    #Calculate coverage
+    coverage.append(1) if ppi_ci[0] <= accs[0] <= ppi_ci[1] else coverage.append(0)
+    #add imputed data to train and predicted y
+    x_imputation = np.concatenate([x_train_label, x_unl])
+    y_imputation = np.concatenate([y_train_label, preds_unl])
+    sample_s = sample_size
+    # Add new unlabeled samples until condition is no longer met
+    while width <= w_t:
+        #Get new unlabeled sample
+        x_unl, preds_unl, probs_unl, data_unl  = unlabeled_weakly_sampling(data_unl, sample_size, col_name)
+        #Continue with training with new data
+        clf = model.fit(x_imputation, y_imputation)
+        preds_label = clf.predict(x_test_label)
+        probs_label = clf.predict_proba(x_test_label)
+        probs_label = np.max(probs_label, axis=1)
+
+        # Estimate accuracy, CI and width
+        corrects = (preds_label == y_test_label).astype(float)
+        ppi_ci = ppi_mean_ci(corrects, probs_label, probs_unl, alpha=alpha)
+        acc = ppi_mean_pointestimate(corrects, probs_label, probs_unl)
+        accs.append(acc[0])
+        width = abs(ppi_ci[0]-ppi_ci[1])[0]
+        ws.append(width)
+        coverage.append(1) if ppi_ci[0] <= accs[0] <= ppi_ci[1] else coverage.append(0)
+        # add imputed data to train and predicted y
+        x_imputation = np.concatenate([x_imputation, x_unl])
+        y_imputation = np.concatenate([y_imputation, preds_unl])
+        sample_s += sample_size
+        print(f"CI_lower={ppi_ci[0][0]:.3} CI_upper={ppi_ci[1][0]:.3} width={width:.3f} sample_size={sample_s:.3f}")
+        if len(data_unl)<sample_size:
+            joblib.dump(model, model_name + '.joblib')
+            print("Trained model saved")
             break
     else:
         joblib.dump(model, model_name+'.joblib')
