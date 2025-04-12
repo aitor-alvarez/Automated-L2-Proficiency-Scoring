@@ -109,10 +109,16 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
         if len(data_unl)<sample_size:
             joblib.dump(model, model_name + '.joblib')
             print("Trained model saved")
+            print(f"{sum(coverage) / len(coverage):.3f}% of coverage")
+            print(f"{sum(accs) / len(accs):.3f}% of mean accuracy")
+            print(f"{sum(ws) / len(ws):.3f}% of mean width")
             break
     else:
         joblib.dump(model, model_name+'.joblib')
         print("Trained model saved")
+        print(f"{sum(coverage) / len(coverage):.3f}% of coverage")
+        print(f"{sum(accs) / len(accs):.3f}% of mean accuracy")
+        print(f"{sum(ws) / len(ws):.3f}% of mean width")
     return None
 
 
@@ -200,6 +206,9 @@ def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, 
     else:
         joblib.dump(model, model_name+'.joblib')
         print("Trained model saved")
+        print(f"{sum(coverage) / len(coverage):.3f}% of coverage")
+        print(f"{sum(accs) / len(accs):.3f}% of mean accuracy")
+        print(f"{sum(ws) / len(ws):.3f}% of mean width")
     return None
 
 
