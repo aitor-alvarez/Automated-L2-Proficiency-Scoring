@@ -49,7 +49,7 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
     if model_name == 'rf':
         model = RandomForestClassifier(**model_params)
 
-    elif model_name == 'lgb':
+    elif model_name == 'lgbm':
         model = lgb.LGBMClassifier(**model_params)
 
     elif model_name == 'gbm':
@@ -85,7 +85,7 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
     while width <= w_t:
         #Get new unlabeled sample
         x_unl, data_unl = unlabeled_data_sampling(data_unl, sample_size)
-        #Continue with training with new data
+        #Train with new unlabeled data added to input
         clf = model.fit(x_imputation, y_imputation)
         preds_label = clf.predict(x_test_label)
         probs_label = clf.predict_proba(x_test_label)
@@ -193,6 +193,9 @@ def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, 
         if len(data_unl)<sample_size:
             joblib.dump(model, model_name + '.joblib')
             print("Trained model saved")
+            print(f"{sum(coverage)/len(coverage):.3f}% of coverage")
+            print(f"{sum(accs)/len(accs):.3f}% of mean accuracy")
+            print(f"{sum(ws)/len(ws):.3f}% of mean width")
             break
     else:
         joblib.dump(model, model_name+'.joblib')
