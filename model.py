@@ -105,7 +105,8 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
         x_imputation = np.concatenate([x_imputation, x_unl])
         y_imputation = np.concatenate([y_imputation, preds_unl])
         sample_s += sample_size
-        print(f"CI_lower={ppi_ci[0][0]:.3} CI_upper={ppi_ci[1][0]:.3} width={width:.3f} sample_size={sample_s:.3f}")
+        print(f"CI_lower={ppi_ci[0][0]:.3f} CI_upper={ppi_ci[1][0]:.3f} width={width:.3f} sample_size={sample_s:.3f} "
+              f"accuracy={acc[0]:.3f}")
         if len(data_unl)<sample_size:
             joblib.dump(model, model_name + '.joblib')
             print("Trained model saved")
@@ -195,8 +196,8 @@ def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, 
         x_imputation = np.concatenate([x_imputation, x_unl])
         y_imputation = np.concatenate([y_imputation, preds_unl])
         sample_s += sample_size
-        print(f"CI_lower={ppi_ci[0][0]:.3} CI_upper={ppi_ci[1][0]:.3} width={width:.3f} sample_size={sample_s:.3f} "
-              f"accuracy={acc[0]:.3}")
+        print(f"CI_lower={ppi_ci[0][0]:.3f} CI_upper={ppi_ci[1][0]:.3f} width={width:.3f} sample_size={sample_s:.3f} "
+              f"accuracy={acc[0]:.3f}")
         if len(data_unl)<sample_size:
             joblib.dump(model, model_name + '.joblib')
             print("Trained model saved")
