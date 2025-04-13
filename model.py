@@ -14,7 +14,7 @@ import joblib
 
 warnings.filterwarnings("ignore")
 
-def dataset_preparation(data_file, y_cols =['vocabulary_range']):
+def dataset_preparation(data_file, y_cols =['grammatical_accuracy']):
     data = pd.read_excel(data_file)
     data = data.loc[:, ~data.columns.str.contains('^Unnamed')]
     data['user_id'], _ = pd.factorize(data['user_id'])
@@ -26,7 +26,7 @@ def dataset_preparation(data_file, y_cols =['vocabulary_range']):
     data.drop(['session_id'], axis=1, inplace=True)
     data.drop(['vocabulary_range', 'grammatical_accuracy'], axis=1, inplace=True)
     data = data.to_numpy()
-    x_train, x_test, y_train, y_test = train_test_split(data,  y[0], test_size=.15, random_state=13)
+    x_train, x_test, y_train, y_test = train_test_split(data,  y[0], test_size=.2, random_state=13)
     return [x_train, x_test, y_train, y_test]
 
 
@@ -36,7 +36,7 @@ def unlabeled_data_sampling(data, n):
     return sample.to_numpy(), data
 
 
-def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sample_size=50, alpha=0.1, w_t=0.2):
+def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sample_size=100, alpha=0.1, w_t=0.2):
     x_train_label, x_test_label, y_train_label, y_test_label= data_label
     #Unlabeled data and sampling
     data_unl = pd.read_excel(unl_file)
@@ -131,7 +131,7 @@ def unlabeled_weakly_sampling(data, n, col_name):
     return sample_x.to_numpy(), sample_y.to_numpy(), sample_proba.to_numpy(), data
 
 
-def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, col_name, sample_size=50, alpha=0.1, w_t=0.2):
+def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, col_name='grammatical_accuracy', sample_size=100, alpha=0.1, w_t=0.2):
     x_train_label, x_test_label, y_train_label, y_test_label= data_label
     #Unlabeled data and sampling
     data_unl = pd.read_excel(unl_file)
@@ -195,7 +195,8 @@ def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, 
         x_imputation = np.concatenate([x_imputation, x_unl])
         y_imputation = np.concatenate([y_imputation, preds_unl])
         sample_s += sample_size
-        print(f"CI_lower={ppi_ci[0][0]:.3} CI_upper={ppi_ci[1][0]:.3} width={width:.3f} sample_size={sample_s:.3f}")
+        print(f"CI_lower={ppi_ci[0][0]:.3} CI_upper={ppi_ci[1][0]:.3} width={width:.3f} sample_size={sample_s:.3f} "
+              f"accuracy={acc[0]:.3}")
         if len(data_unl)<sample_size:
             joblib.dump(model, model_name + '.joblib')
             print("Trained model saved")
