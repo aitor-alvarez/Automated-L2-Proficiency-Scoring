@@ -60,6 +60,7 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
     #Save values during training for plotting
     ws=[]
     accs=[]
+    class_acc=[]
     coverage=[]
     clf = model.fit(x_train_label, y_train_label)
     preds_label = clf.predict(x_test_label)
@@ -70,6 +71,8 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
     preds_unl = clf.predict(x_unl)
     #Estimate mean accuracy, CI and width
     corrects = (preds_label==y_test_label).astype(float)
+    mean_acc = corrects / len(preds_label)
+    class_acc.append(mean_acc)
     ppi_ci = ppi_mean_ci(corrects, probs_label, probs_unl, alpha=alpha)
     acc = ppi_mean_pointestimate(corrects, probs_label, probs_unl)
     accs.append(acc[0])
@@ -95,6 +98,7 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
         preds_unl = clf.predict(x_unl)
         # Estimate accuracy, CI and width
         corrects = (preds_label == y_test_label).astype(float)
+        mean_acc = sum(corrects)/len(corrects)
         ppi_ci = ppi_mean_ci(corrects, probs_label, probs_unl, alpha=alpha)
         acc = ppi_mean_pointestimate(corrects, probs_label, probs_unl)
         accs.append(acc[0])
@@ -106,12 +110,13 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
         y_imputation = np.concatenate([y_imputation, preds_unl])
         sample_s += sample_size
         print(f"CI_lower={ppi_ci[0][0]:.3f} CI_upper={ppi_ci[1][0]:.3f} width={width:.3f} sample_size={sample_s:.3f} "
-              f"accuracy={acc[0]:.3f}")
+              f"accuracy={acc[0]:.3f} classical mean accuracy={mean_acc:.3f}")
         if len(data_unl)<sample_size:
             joblib.dump(model, model_name + '.joblib')
             print("Trained model saved")
             print(f"{sum(coverage) / len(coverage):.3f}% of coverage")
             print(f"{sum(accs) / len(accs):.3f}% of mean accuracy")
+            print(f"{sum(class_acc)/len(class_acc)}% of classical mean accuracy")
             print(f"{sum(ws) / len(ws):.3f}% of mean width")
             break
     else:
@@ -119,6 +124,7 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
         print("Trained model saved")
         print(f"{sum(coverage) / len(coverage):.3f}% of coverage")
         print(f"{sum(accs) / len(accs):.3f}% of mean accuracy")
+        print(f"{sum(class_acc) / len(class_acc)}% of classical mean accuracy")
         print(f"{sum(ws) / len(ws):.3f}% of mean width")
     return None
 
@@ -155,6 +161,7 @@ def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, 
         model = XGBClassifier(**model_params)
     #Save values during training for plotting
     ws=[]
+    class_acc=[]
     accs=[]
     coverage=[]
     clf = model.fit(x_train_label, y_train_label)
@@ -165,6 +172,8 @@ def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, 
     corrects = (preds_label==y_test_label).astype(float)
     ppi_ci = ppi_mean_ci(corrects, probs_label, probs_unl, alpha=alpha)
     acc = ppi_mean_pointestimate(corrects, probs_label, probs_unl)
+    mean_acc = sum(corrects)/len(corrects)
+    class_acc.append(mean_acc)
     accs.append(acc[0])
     width = abs(ppi_ci[0]-ppi_ci[1])[0]
     ws.append(width)
@@ -188,6 +197,8 @@ def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, 
         corrects = (preds_label == y_test_label).astype(float)
         ppi_ci = ppi_mean_ci(corrects, probs_label, probs_unl, alpha=alpha)
         acc = ppi_mean_pointestimate(corrects, probs_label, probs_unl)
+        mean_acc = sum(corrects)/len(corrects)
+        class_acc.append(mean_acc)
         accs.append(acc[0])
         width = abs(ppi_ci[0]-ppi_ci[1])[0]
         ws.append(width)
@@ -197,19 +208,21 @@ def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, 
         y_imputation = np.concatenate([y_imputation, preds_unl])
         sample_s += sample_size
         print(f"CI_lower={ppi_ci[0][0]:.3f} CI_upper={ppi_ci[1][0]:.3f} width={width:.3f} sample_size={sample_s:.3f} "
-              f"accuracy={acc[0]:.3f}")
+              f"accuracy={acc[0]:.3f} mean classical accuracy={mean_acc}")
         if len(data_unl)<sample_size:
             joblib.dump(model, model_name + '.joblib')
             print("Trained model saved")
             print(f"{sum(coverage)/len(coverage):.3f}% of coverage")
             print(f"{sum(accs)/len(accs):.3f}% of mean accuracy")
             print(f"{sum(ws)/len(ws):.3f}% of mean width")
+            print(f"{sum(class_acc) / len(class_acc):.3f}% of classical mean accuracy")
             break
     else:
         joblib.dump(model, model_name+'.joblib')
         print("Trained model saved")
         print(f"{sum(coverage) / len(coverage):.3f}% of coverage")
         print(f"{sum(accs) / len(accs):.3f}% of mean accuracy")
+        print(f"{sum(class_acc) / len(class_acc)}% of classical mean accuracy")
         print(f"{sum(ws) / len(ws):.3f}% of mean width")
     return None
 
