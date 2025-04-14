@@ -227,6 +227,17 @@ def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, 
     return None
 
 
+def llm_ppi_evaluation(data_label, unl_file, col_name='grammatical_accuracy', sample_size=1100, alpha=0.1, w_t=0.2):
+    x_train_label, x_test_label, y_train_label, y_test_label = data_label
+    # Unlabeled data and sampling
+    data_unl = pd.read_excel(unl_file)
+    _, preds_llm, _, _ = unlabeled_weakly_sampling(data_unl, sample_size, col_name)
+    corrects = (preds_llm == y_test_label).astype(float)
+    mean_acc = sum(corrects) / len(corrects)
+    print(f"accuracy={mean_acc}")
+    return None
+
+
 def train_test_clf(data_train, model_name):
     x_train, x_test, y_train, y_test = data_train
     #Parameter search for the selected model, since both response variables are highly correlated (>0.85)
