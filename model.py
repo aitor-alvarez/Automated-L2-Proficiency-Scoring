@@ -36,7 +36,7 @@ def unlabeled_data_sampling(data, n):
     return sample.to_numpy(), data
 
 
-def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sample_size=100, alpha=0.1, w_t=0.2):
+def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sample_size=100, alpha=0.1, w_t=0.2, max_sample_size=1100):
     x_train_label, x_test_label, y_train_label, y_test_label= data_label
     #Unlabeled data and sampling
     data_unl = pd.read_excel(unl_file)
@@ -71,7 +71,7 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
     preds_unl = clf.predict(x_unl)
     #Estimate mean accuracy, CI and width
     corrects = (preds_label==y_test_label).astype(float)
-    mean_acc = corrects / len(preds_label)
+    mean_acc = sum(corrects) / len(corrects)
     class_acc.append(mean_acc)
     ppi_ci = ppi_mean_ci(corrects, probs_label, probs_unl, alpha=alpha)
     acc = ppi_mean_pointestimate(corrects, probs_label, probs_unl)
@@ -85,7 +85,7 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
     y_imputation = np.concatenate([y_train_label, preds_unl])
     sample_s = sample_size
     # Add new unlabeled samples until condition is no longer met
-    while width <= w_t:
+    while width <= w_t and sample_s <= max_sample_size:
         #Get new unlabeled sample
         x_unl, data_unl = unlabeled_data_sampling(data_unl, sample_size)
         #Train with new unlabeled data added to input
@@ -116,7 +116,7 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
             print("Trained model saved")
             print(f"{sum(coverage) / len(coverage):.3f}% of coverage")
             print(f"{sum(accs) / len(accs):.3f}% of mean accuracy")
-            print(f"{sum(class_acc)/len(class_acc)}% of classical mean accuracy")
+            print(f"{sum(class_acc) / len(class_acc):.3f}% of classical mean accuracy")
             print(f"{sum(ws) / len(ws):.3f}% of mean width")
             break
     else:
@@ -124,7 +124,7 @@ def semi_supervised_ppi_train(data_label, unl_file, model_name, model_params, sa
         print("Trained model saved")
         print(f"{sum(coverage) / len(coverage):.3f}% of coverage")
         print(f"{sum(accs) / len(accs):.3f}% of mean accuracy")
-        print(f"{sum(class_acc) / len(class_acc)}% of classical mean accuracy")
+        print(f"{sum(class_acc) / len(class_acc):.3f}% of classical mean accuracy")
         print(f"{sum(ws) / len(ws):.3f}% of mean width")
     return None
 
