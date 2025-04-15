@@ -138,7 +138,8 @@ def unlabeled_weakly_sampling(data, n, col_name):
     return sample_x.to_numpy(), sample_y.to_numpy(), sample_proba.to_numpy(), data
 
 
-def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, col_name='grammatical_accuracy', sample_size=100, alpha=0.1, w_t=0.2):
+def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, col_name='grammatical_accuracy',
+                                sample_size=100, alpha=0.1, w_t=0.2, max_sample_size=1100):
     x_train_label, x_test_label, y_train_label, y_test_label= data_label
     #Unlabeled data and sampling
     data_unl = pd.read_excel(unl_file)
@@ -176,6 +177,7 @@ def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, 
     class_acc.append(mean_acc)
     accs.append(acc[0])
     width = abs(ppi_ci[0]-ppi_ci[1])[0]
+    print(f"width={width:.3f} Accuracy={acc[0]:.3f} Mean classical accuracy={mean_acc:.3f}")
     ws.append(width)
     #Calculate coverage
     coverage.append(1) if ppi_ci[0] <= accs[0] <= ppi_ci[1] else coverage.append(0)
@@ -184,7 +186,7 @@ def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, 
     y_imputation = np.concatenate([y_train_label, preds_unl])
     sample_s = sample_size
     # Add new unlabeled samples until condition is no longer met
-    while width <= w_t:
+    while width <= w_t and sample_s <= max_sample_size:
         #Get new unlabeled sample
         x_unl, preds_unl, probs_unl, data_unl  = unlabeled_weakly_sampling(data_unl, sample_size, col_name)
         #Continue with training with new data
@@ -208,7 +210,7 @@ def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, 
         y_imputation = np.concatenate([y_imputation, preds_unl])
         sample_s += sample_size
         print(f"CI_lower={ppi_ci[0][0]:.3f} CI_upper={ppi_ci[1][0]:.3f} width={width:.3f} sample_size={sample_s:.3f} "
-              f"accuracy={acc[0]:.3f} mean classical accuracy={mean_acc}")
+              f"accuracy={acc[0]:.3f} mean classical accuracy={mean_acc:.3f}")
         if len(data_unl)<sample_size:
             joblib.dump(model, model_name + '.joblib')
             print("Trained model saved")
@@ -222,7 +224,7 @@ def weakly_supervised_ppi_train(data_label, unl_file, model_name, model_params, 
         print("Trained model saved")
         print(f"{sum(coverage) / len(coverage):.3f}% of coverage")
         print(f"{sum(accs) / len(accs):.3f}% of mean accuracy")
-        print(f"{sum(class_acc) / len(class_acc)}% of classical mean accuracy")
+        print(f"{sum(class_acc) / len(class_acc):.3f}% of classical mean accuracy")
         print(f"{sum(ws) / len(ws):.3f}% of mean width")
     return None
 
