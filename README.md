@@ -16,5 +16,8 @@ python generate_dataset.py --model_name 'gpt-4o' --dataset_file' 'json_file_with
 
 ```
 python main.py --model_name 'xgb' --dataset_file' 'path to excel or csv file with dataset generated in the previous step' \
---dataset_unl 'path to csv or excel with features but no labels' --training 'semi' --model_params 'dict with xgb params'
+--dataset_unl 'path to csv or excel with features but no labels' \
+--training 'semi' \
+--model_params  '{"learning_rate": 0.1, "max_depth": 6, "n_estimators": 100}'
+
 ```

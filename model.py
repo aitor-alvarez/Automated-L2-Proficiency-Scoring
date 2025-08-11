@@ -14,7 +14,7 @@ import joblib
 
 warnings.filterwarnings("ignore")
 
-def dataset_preparation(data_file, y_cols =['grammatical_accuracy']):
+def dataset_preparation(data_file, y_cols =['vocabulary_range']):
     data = pd.read_excel(data_file)
     data = data.loc[:, ~data.columns.str.contains('^Unnamed')]
     data['user_id'], _ = pd.factorize(data['user_id'])

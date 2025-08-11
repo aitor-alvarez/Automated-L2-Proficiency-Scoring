@@ -2,6 +2,8 @@ from model import *
 import pandas as pd
 from argparse import ArgumentParser
 from sklearn.model_selection import train_test_split
+import json
+
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -13,7 +15,7 @@ if __name__ == '__main__':
     #training= 'weak' or 'semi'
     parser.add_argument('--training', type=str)
     #Model parameters
-    parser.add_argument('--model_params', type=str)
+    parser.add_argument('--model_params', type=json.loads, default={})
     args = parser.parse_args()
     if args.dataset_file and args.model_name and args.training:
         #labeled dataset
