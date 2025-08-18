@@ -48,7 +48,7 @@ def create_dataset(file_path, model, generation=True):
     df = df[df['is_spoken']==False]
     df = df.sort_values(['participant', 'session_id'], ascending=[True, True])
     for d in df.iterrows():
-        n_turns.append(len(d[1]))
+        n_turns.append(len(d[1]['user_response']))
         txt = '.'.join(d[1]['user_response']).replace("\r\n","")
         doc = nlp(txt)
         if generation:
