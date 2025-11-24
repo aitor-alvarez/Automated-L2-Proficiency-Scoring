@@ -21,7 +21,7 @@ python main.py --model_name 'xgb' --dataset_file' 'path to excel or csv file wit
 --model_params  '{"learning_rate": 0.1, "max_depth": 6, "n_estimators": 100}'
 
 ```
-If you use this code for your own research project, please cite the following work
+If you use this code for your own research project, please consider citing the following work:
 
 ```
 @inproceedings{arronte-alvarez-xie-fincham-2025-automated,
